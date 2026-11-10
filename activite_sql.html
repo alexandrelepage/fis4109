@@ -65,11 +65,30 @@ button.act:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .hole.act,.hole.over{border-color:var(--accent);background:var(--card)}
 .hole.full{border-style:solid;border-color:transparent;padding:0;cursor:default}
 .hole.good{border:2px solid var(--ok)}.hole.bad{border:2px solid var(--ko)}
+[hidden]{display:none!important}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--card)}
+
+#intro{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+#intro .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;max-width:440px;width:100%}
+#intro h1{margin-bottom:8px}
+#intro input{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);margin:12px 0}
+#intro input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#err{color:var(--ko);min-height:1.5em;margin:0 0 8px;font-weight:600}
 </style>
 </head>
 <body>
-<main>
+
+<div id="intro"><div class="box">
+<h1>Bienvenue !</h1>
+<p class="sub">Dans cette activité, vous allez construire des requêtes SQL en glissant des blocs. Avant de commencer, veuillez entrer votre prénom et nom.</p>
+<label for="nom">Votre prénom et nom</label>
+<input id="nom" type="text" autocomplete="name" maxlength="60">
+<p id="err" role="alert"></p>
+<button class="act main" id="go">Commencer</button>
+</div></div>
+<main id="app" hidden>
 <h1>Construire des requêtes SQL</h1>
+<p id="who" hidden></p>
 <p class="sub">Complétez la requête : glissez les blocs dans les trous (ou touchez un bloc pour le placer dans le prochain trou), puis cliquez sur « Vérifier ».</p>
 
 <details class="schema"><summary>Voir la base de données</summary><div class="tables" id="schema"></div></details>
@@ -116,6 +135,10 @@ const VALS=["10","20","'2028-01-19'","'2028-01-30'","'2028-03-30'","'2028-03-19'
 const reg={};
 function mk(type,sql,label,t,sp){const id=type+"|"+(t||"")+"|"+sql;return reg[id]={id,type,sql,label:label||sql,special:sp}}
 const $=s=>document.querySelector(s);
+let nom="";
+function start(){const v=$("#nom").value.trim();if(!v){$("#err").textContent="Veuillez entrer votre nom pour commencer.";$("#nom").focus();return}
+ nom=v;$("#who").textContent="Participant : "+nom;$("#who").hidden=false;$("#intro").hidden=true;$("#app").hidden=false}
+$("#go").onclick=start;$("#nom").onkeydown=e=>{if(e.key==="Enter")start()};$("#nom").focus();
 let cur=0,act=0,marks=null;
 const state=TASKS.map(t=>Array(t.n).fill(null)),done=[false,false,false];
 
@@ -188,8 +211,8 @@ $("#check").onclick=()=>{
  if(v.some(x=>!x))return fb("ko","Complétez tous les trous avant de vérifier.");
  marks=TASKS[cur].ok(v);renderQuery();
  const bad=marks.filter(x=>!x).length;
- if(!bad){done[cur]=true;renderTabs();fb("ok",done.every(Boolean)?"✅ Bravo ! Les trois requêtes sont réussies.":"✅ Bravo ! Cette requête est correcte. Passe à la tâche suivante.")}
- else fb("ko",bad+(bad>1?" trous sont à revoir":" trou est à revoir")+" (en rouge). Relis l’énoncé et corrige.");
+ if(!bad){done[cur]=true;renderTabs();fb("ok",done.every(Boolean)?"✅ Bravo "+nom+" ! Les trois requêtes sont réussies.":"✅ Bravo "+nom+" ! Cette requête est correcte. Passez à la tâche suivante.")}
+ else fb("ko",bad+(bad>1?" trous sont à revoir":" trou est à revoir")+" (en rouge). Relisez l’énoncé et corrigez.");
 };
 $("#clear").onclick=()=>{state[cur]=Array(TASKS[cur].n).fill(null);act=0;change()};
 function render(){$("#fb").className="";renderTabs();renderPalette();renderQuery()}
