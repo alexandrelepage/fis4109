@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Construire des requêtes SQL par glisser-déposer</title>
+<style>
+:root{--bg:#f3f6f8;--card:#fff;--text:#1d2b36;--muted:#5d6e7a;--line:#cfd9e0;--accent:#0b6e8a;--ok:#1b7f4b;--ko:#b3402a;--l:91%;--bl:62%;--zone:#fbfdfe;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a20;--card:#1b262e;--text:#e6eef3;--muted:#9fb0bb;--line:#33444f;--accent:#5cc3df;--ok:#5fd18f;--ko:#ff8f78;--l:25%;--bl:50%;--zone:#162028}}
+:root[data-theme="dark"]{--bg:#121a20;--card:#1b262e;--text:#e6eef3;--muted:#9fb0bb;--line:#33444f;--accent:#5cc3df;--ok:#5fd18f;--ko:#ff8f78;--l:25%;--bl:50%;--zone:#162028}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:18px 14px 40px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 14px}
+details.schema{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:14px}
+details.schema summary{cursor:pointer;font-weight:600}
+.tables{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:10px}
+.tbl{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:.85rem}
+.tbl b{display:block;margin-bottom:4px;color:var(--accent)}
+.tbl span{display:block;font-family:Consolas,Menlo,monospace;font-size:.8rem}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+.tab[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent);font-weight:600}
+.tab.done::after{content:" ✓";color:var(--ok);font-weight:700}
+.task{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:8px;padding:12px 14px;margin-bottom:14px}
+.task p{margin:0}
+.grid{display:grid;grid-template-columns:minmax(260px,5fr) 7fr;gap:14px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px}
+.panel h2{font-size:1rem;margin:0 0 8px}
+.grp{margin-bottom:12px}
+.grp h3{font-size:.85rem;color:var(--muted);margin:0 0 6px;font-weight:600}
+.grp h4{font-size:.8rem;margin:6px 0 4px;font-family:Consolas,Menlo,monospace;color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.blk{--s:55%;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;border:2px solid hsl(var(--h) 45% var(--bl));background:hsl(var(--h) var(--s) var(--l));color:var(--text);font-family:Consolas,Menlo,monospace;font-size:.88rem;cursor:grab;user-select:none;touch-action:manipulation}
+.blk:active{cursor:grabbing}
+.blk:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.t-query{--h:215;font-weight:700}.t-table{--h:145}.t-op{--h:32;font-weight:700}.t-field{--h:275}.t-value{--h:185}.t-special{--h:335;font-family:inherit;font-weight:600}
+.note{color:var(--muted);font-size:.85rem;margin:0}
+#zone{min-height:92px;border:2px dashed var(--line);border-radius:8px;background:var(--zone);padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;transition:border-color .15s}
+#zone.over{border-color:var(--accent)}
+#zone .empty{color:var(--muted);margin:auto;text-align:center;width:100%}
+#zone .blk.ins{box-shadow:-6px 0 0 -1px var(--accent)}
+#zone.end{box-shadow:inset -6px 0 0 -2px var(--accent)}
+.x{border:0;background:transparent;color:inherit;cursor:pointer;font-size:1rem;line-height:1;padding:0 0 0 2px;opacity:.7}
+.x:hover{opacity:1}
+h2.pv{margin-top:14px}
+pre#sql{margin:0;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line);font:.92rem/1.6 Consolas,Menlo,monospace;white-space:pre-wrap;min-height:48px;color:var(--text)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button.act{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+button.act.main{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.act.main{color:#06222b}}
+:root[data-theme="dark"] button.act.main{color:#06222b}
+button.act:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#fb{margin-top:12px;padding:10px 12px;border-radius:8px;display:none;font-weight:600}
+#fb.ok{display:block;background:hsl(145 45% var(--l));color:var(--text);border:1px solid var(--ok)}
+#fb.ko{display:block;background:hsl(10 55% var(--l));color:var(--text);border:1px solid var(--ko)}
+#query{font:1rem/1.6 Consolas,Menlo,monospace;background:var(--zone);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:10px}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kw{font-weight:700;color:var(--accent)}
+.hole{min-width:120px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:6px;padding:0 6px;cursor:pointer;color:var(--muted);font-size:.8rem}
+.hole.act,.hole.over{border-color:var(--accent);background:var(--card)}
+.hole.full{border-style:solid;border-color:transparent;padding:0;cursor:default}
+.hole.good{border:2px solid var(--ok)}.hole.bad{border:2px solid var(--ko)}
+</style>
+</head>
+<body>
+<main>
+<h1>Construire des requêtes SQL</h1>
+<p class="sub">Complétez la requête : glissez les blocs dans les trous (ou touchez un bloc pour le placer dans le prochain trou), puis cliquez sur « Vérifier ».</p>
+
+<details class="schema"><summary>Voir la base de données</summary><div class="tables" id="schema"></div></details>
+
+<div class="tabs" role="tablist" id="tabs"></div>
+<div class="task"><p id="taskText"></p></div>
+
+<div class="grid">
+  <section class="panel" id="palette" aria-label="Blocs disponibles"></section>
+  <section class="panel">
+    <h2>Ma requête</h2>
+    <div id="query"></div>
+    <div class="btns">
+      <button class="act main" id="check">Vérifier</button>
+      <button class="act" id="clear">Tout effacer</button>
+    </div>
+    <div id="fb" role="status" aria-live="polite"></div>
+  </section>
+</div>
+<script>
+const T={
+ notes_cliniques:["numero_patient","numero_professionnel","date","contenu_note"],
+ resultats_examen:["numero_resultat","numero_patient","numero_medecin","date_demande","date_reception","description_demande","contenu_resultat"],
+ patient:["numero_patient","nom","prenom","numero_ramq","numero_medecin"],
+ medecin:["numero_medecin","nom","prenom","numero_pratique"],
+ prescriptions:["numero_prescription","numero_medecin","numero_patient","date","description_prescription"],
+ rendez_vous:["numero_rendezvous","date_heure","numero_medecin","numero_patient"]
+};
+const LANG="‹Numéro médecin Dr Langlois›",EDOU="‹Numéro patient Édouardo›";
+const TASKS=[
+ {text:"Tâche 1 : Construisez une requête pour récupérer dans la base de données les prescriptions du patient numéro 10.",
+  lines:[["SELECT",0],["FROM",1],["WHERE",2,"=",3]],n:4,
+  ok:v=>[v[0]==="*"||T.prescriptions.includes(v[0]),v[1]==="prescriptions",v[2]==="numero_patient",v[3]==="10"]},
+ {text:"Tâche 2 : Construisez une requête pour ajouter un rendez-vous le 19 janvier 2028 avec le Dr Langlois pour le patient Édouardo.",
+  lines:[["INSERT INTO",0,"(date_heure, numero_medecin, numero_patient)"],["VALUES (",1,",",2,",",3,")"]],n:4,
+  ok:v=>[v[0]==="rendez_vous",v[1]==="'2028-01-19'",v[2]===LANG,v[3]===EDOU]},
+ {text:"Tâche 3 : Construisez une requête pour annuler tous les rendez-vous du Dr Langlois le 30 mars 2028, car il sera absent.",
+  lines:[["DELETE FROM",0],["WHERE",1,"=",2],["AND",3,"=",4]],n:5,
+  ok:v=>{const a=["numero_medecin",LANG],b=["date_heure","'2028-03-30'"];
+   const r=v[1]===b[0]||v[2]===b[1],e=r?[b,a]:[a,b];
+   return [v[0]==="rendez_vous",v[1]===e[0][0],v[2]===e[0][1],v[3]===e[1][0],v[4]===e[1][1]]}}
+];
+const VALS=["10","20","'2028-01-19'","'2028-01-30'","'2028-03-30'","'2028-03-19'"];
+const reg={};
+function mk(type,sql,label,t,sp){const id=type+"|"+(t||"")+"|"+sql;return reg[id]={id,type,sql,label:label||sql,special:sp}}
+const $=s=>document.querySelector(s);
+let cur=0,act=0,marks=null;
+const state=TASKS.map(t=>Array(t.n).fill(null)),done=[false,false,false];
+
+$("#schema").innerHTML=Object.entries(T).map(([t,f])=>`<div class="tbl"><b>${t}</b>${f.map(x=>`<span>${x}</span>`).join("")}</div>`).join("");
+
+function renderTabs(){
+ $("#tabs").innerHTML="";
+ TASKS.forEach((_,i)=>{const b=document.createElement("button");b.className="tab"+(done[i]?" done":"");b.setAttribute("role","tab");b.setAttribute("aria-selected",i===cur);b.textContent="Tâche "+(i+1);
+  b.onclick=()=>{cur=i;nextAct();marks=null;render()};$("#tabs").append(b)});
+ $("#taskText").textContent=TASKS[cur].text;
+}
+function nextAct(){act=state[cur].findIndex(x=>!x);if(act<0)act=null}
+function change(){marks=null;render()}
+function place(o){const s=state[cur];const i=act!=null&&!s[act]?act:s.findIndex(x=>!x);if(i<0)return;s[i]={...o};nextAct();change()}
+function parse(e){try{return JSON.parse(e.dataTransfer.getData("text/plain"))}catch(_){return null}}
+
+function blockEl(o,h){
+ const d=document.createElement("div");
+ d.className="blk t-"+(o.special?"special":o.type);d.draggable=true;d.tabIndex=0;d.setAttribute("role","button");d.append(o.label);
+ d.addEventListener("dragstart",e=>{e.dataTransfer.effectAllowed="copyMove";e.dataTransfer.setData("text/plain",JSON.stringify(h!=null?{h}:{id:o.id}))});
+ if(h!=null){const x=document.createElement("button");x.className="x";x.textContent="×";x.setAttribute("aria-label","Retirer "+o.label);
+  x.onclick=e=>{e.stopPropagation();state[cur][h]=null;act=h;change()};d.append(x)}
+ else{d.setAttribute("aria-label","Placer "+o.label);d.onclick=()=>place(o);d.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();place(o)}}}
+ return d;
+}
+function group(title,items){
+ const g=document.createElement("div");g.className="grp";g.innerHTML=`<h3>${title}</h3>`;
+ const r=document.createElement("div");r.className="row";items.forEach(o=>r.append(blockEl(o)));g.append(r);return g;
+}
+function renderPalette(){
+ const p=$("#palette");p.innerHTML="<h2>Blocs</h2>";
+ p.append(group("Tables",Object.keys(T).map(t=>mk("table",t))));
+ const placed=[...new Set(state[cur].filter(o=>o&&o.type==="table").map(o=>o.sql))];
+ const g=document.createElement("div");g.className="grp";g.innerHTML="<h3>Champs</h3>";
+ const r0=document.createElement("div");r0.className="row";r0.append(blockEl(mk("field","*","* (tous les champs)")));g.append(r0);
+ if(!placed.length){const n=document.createElement("p");n.className="note";n.style.marginTop="6px";n.textContent="Placez une table dans la requête pour voir ses champs.";g.append(n)}
+ placed.forEach(t=>{const h=document.createElement("h4");h.textContent=t;g.append(h);
+  const r=document.createElement("div");r.className="row";T[t].forEach(f=>r.append(blockEl(mk("field",f,f,t))));
+  if(t==="rendez_vous"){
+   if(cur>=1)r.append(blockEl(mk("value",LANG,"Numéro médecin Dr Langlois","sp",true)));
+   if(cur===1)r.append(blockEl(mk("value",EDOU,"Numéro patient Édouardo","sp",true)));
+  }
+  g.append(r)});
+ p.append(g);
+ p.append(group("Valeurs",VALS.map(v=>mk("value",v))));
+ p.ondragover=e=>e.preventDefault();
+ p.ondrop=e=>{e.preventDefault();const d=parse(e);if(d&&d.h!=null){state[cur][d.h]=null;act=d.h;change()}};
+}
+function hole(i){
+ const o=state[cur][i],h=document.createElement("span");
+ h.className="hole"+(o?" full":"")+(act===i&&!o?" act":"")+(marks?(marks[i]?" good":" bad"):"");
+ if(o)h.append(blockEl(o,i));else h.textContent="déposer ici";
+ h.onclick=()=>{if(!o){act=i;renderQuery()}};
+ h.ondragover=e=>{e.preventDefault();h.classList.add("over")};
+ h.ondragleave=()=>h.classList.remove("over");
+ h.ondrop=e=>{e.preventDefault();const d=parse(e);if(!d)return;const s=state[cur];
+  if(d.h!=null){const t=s[i];s[i]=s[d.h];s[d.h]=t}else if(reg[d.id])s[i]={...reg[d.id]};
+  nextAct();change()};
+ return h;
+}
+function renderQuery(){
+ const q=$("#query");q.innerHTML="";
+ TASKS[cur].lines.forEach(l=>{const r=document.createElement("div");r.className="line";
+  l.forEach(p=>{if(typeof p==="string"){const s=document.createElement("span");s.className="kw";s.textContent=p;r.append(s)}else r.append(hole(p))});
+  q.append(r)});
+}
+function fb(c,m){const f=$("#fb");f.className=c;f.textContent=m}
+$("#check").onclick=()=>{
+ const v=state[cur].map(o=>o&&o.sql);
+ if(v.some(x=>!x))return fb("ko","Complétez tous les trous avant de vérifier.");
+ marks=TASKS[cur].ok(v);renderQuery();
+ const bad=marks.filter(x=>!x).length;
+ if(!bad){done[cur]=true;renderTabs();fb("ok",done.every(Boolean)?"✅ Bravo ! Les trois requêtes sont réussies.":"✅ Bravo ! Cette requête est correcte. Passe à la tâche suivante.")}
+ else fb("ko",bad+(bad>1?" trous sont à revoir":" trou est à revoir")+" (en rouge). Relis l’énoncé et corrige.");
+};
+$("#clear").onclick=()=>{state[cur]=Array(TASKS[cur].n).fill(null);act=0;change()};
+function render(){$("#fb").className="";renderTabs();renderPalette();renderQuery()}
+render();
+</script>
+</body>
+</html>
