@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jeu des satellites</title>
+<style>
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+body{padding:16px}
+.wrap{max-width:640px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:18px}
+h1{font-size:22px;margin:0}
+#who{font-weight:bold;font-size:16px}
+h2{font-size:18px}
+p{line-height:1.5}
+.hidden{display:none}
+input[type=text]{font:inherit;font-size:18px;padding:10px;border:2px solid #111;border-radius:6px;width:100%;max-width:320px}
+button{font:inherit;font-size:16px;font-weight:bold;padding:10px 20px;border:2px solid #111;background:#111;color:#fff;border-radius:6px;cursor:pointer;margin-top:14px}
+button:disabled{background:#fff;color:#999;border-color:#ccc;cursor:not-allowed}
+button.sec{background:#fff;color:#111}
+h3{margin:14px 0 8px;font-size:15px;color:#555}
+#pool{min-height:64px;display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:2px dashed #bbb;border-radius:8px}
+#pool.over{border-color:#111;background:#f2f2f2}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:2px solid #111;border-radius:8px;background:#fff;font-size:15px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.chip .f{font-size:22px}
+.chip.src{opacity:.25}
+.ghost{position:fixed;z-index:99;pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.25);cursor:grabbing}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.num{width:110px;flex:none;font-size:20px;font-weight:bold;text-align:right}
+.slot{flex:1;min-height:48px;border:2px dashed #bbb;border-radius:8px;padding:3px;display:flex;align-items:center}
+.slot.over{border-color:#111;background:#f2f2f2}
+.slot .chip{width:100%}
+.bar{margin:10px 0;font-size:15px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:460px}
+th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;font-size:15px}
+th{border-bottom:2px solid #111}
+.ok{color:#0a7a2f;font-weight:bold}
+.ko{color:#c00;font-weight:bold}
+.score{font-size:28px;font-weight:bold;margin:8px 0}
+@media(max-width:480px){.num{width:80px;font-size:17px}.chip{font-size:14px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>🛰️ Les satellites par pays</h1><div id="who"></div></header>
+
+<section id="s1">
+  <h2>Bienvenue !</h2>
+  <p>Glissez chaque pays (ou regroupement) à droite du nombre de satellites qu'il possède. Entrez votre prénom et nom pour commencer.</p>
+  <input type="text" id="name" placeholder="Votre nom" maxlength="30" autocomplete="off">
+  <br><button id="start" disabled>Commencer</button>
+</section>
+
+<section id="s2" class="hidden">
+  <h3>Pays à placer</h3>
+  <div id="pool"></div>
+  <h3>Nombre de satellites → pays</h3>
+  <div id="rows"></div>
+  <p class="bar" id="count"></p>
+  <button id="check" disabled>Vérifier mes réponses</button>
+</section>
+
+<section id="s3" class="hidden">
+  <h2>Vérification</h2>
+  <div class="score" id="score"></div>
+  <div class="scroll"><table>
+    <thead><tr><th>Satellites</th><th>Votre réponse</th><th>Bonne réponse</th><th></th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table></div>
+  <button id="again">Rejouer</button>
+  <button class="sec" id="back">Modifier mes réponses</button>
+</section>
+</div>
+
+<script>
+const DATA=[
+ ["🇺🇸","États-Unis",13363],["🇨🇳","Chine",1695],["🇬🇧","Royaume-Uni",725],
+ ["🇷🇺","Russie",1591],["🇯🇵","Japon",219],["🇮🇳","Inde",113],
+ ["🇪🇺","Union européenne",98],["🇨🇦","Canada",60],
+ ["🇰🇷","Corée du Sud",45],["🇦🇪","Émirats arabes unis",35]
+];
+const fmt=n=>n.toLocaleString("fr-FR");
+const $=id=>document.getElementById(id);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+let nOrder,cOrder,slots;
+function show(id){["s1","s2","s3"].forEach(s=>$(s).classList.toggle("hidden",s!==id))}
+function init(){
+  nOrder=DATA.map((_,i)=>i).sort((a,b)=>DATA[b][2]-DATA[a][2]);
+  cOrder=shuffle(DATA.map((_,i)=>i));
+  slots={};render();
+}
+function chip(c,from){
+  const el=document.createElement("div");el.className="chip";
+  el.innerHTML=`<span class="f">${DATA[c][0]}</span><span>${DATA[c][1]}</span>`;
+  el.onpointerdown=e=>startDrag(e,el,c,from);
+  return el;
+}
+function render(){
+  const placed=Object.values(slots);
+  $("pool").innerHTML="";
+  cOrder.filter(c=>!placed.includes(c)).forEach(c=>$("pool").appendChild(chip(c,"pool")));
+  $("rows").innerHTML="";
+  nOrder.forEach(n=>{
+    const r=document.createElement("div");r.className="row";
+    r.innerHTML=`<div class="num">${fmt(DATA[n][2])}</div>`;
+    const s=document.createElement("div");s.className="slot";s.dataset.n=n;
+    if(slots[n]!==undefined)s.appendChild(chip(slots[n],n));
+    r.appendChild(s);$("rows").appendChild(r);
+  });
+  const k=Object.keys(slots).length;
+  $("count").textContent=k+" / 10 pays placés";
+  $("check").disabled=k<10;
+}
+function target(x,y){
+  const el=document.elementFromPoint(x,y);if(!el)return null;
+  const s=el.closest(".slot");if(s)return s;
+  return el.closest("#pool");
+}
+function startDrag(e,el,c,from){
+  e.preventDefault();
+  const rect=el.getBoundingClientRect(),dx=e.clientX-rect.left,dy=e.clientY-rect.top;
+  const g=el.cloneNode(true);g.className="chip ghost";g.style.width=rect.width+"px";
+  document.body.appendChild(g);el.classList.add("src");
+  el.setPointerCapture(e.pointerId);
+  let last=null;
+  const place=(x,y)=>{g.style.left=(x-dx)+"px";g.style.top=(y-dy)+"px"};
+  place(e.clientX,e.clientY);
+  el.onpointermove=ev=>{
+    place(ev.clientX,ev.clientY);
+    const t=target(ev.clientX,ev.clientY);
+    if(last&&last!==t)last.classList.remove("over");
+    if(t)t.classList.add("over");last=t;
+  };
+  const end=ev=>{
+    el.onpointermove=el.onpointerup=el.onpointercancel=null;
+    g.remove();if(last)last.classList.remove("over");
+    const t=ev.type==="pointercancel"?null:target(ev.clientX,ev.clientY);
+    if(t&&t.classList.contains("slot")){
+      const n=+t.dataset.n,occ=slots[n];
+      if(from!==n){
+        if(from!=="pool")delete slots[from];
+        if(occ!==undefined&&from!=="pool")slots[from]=occ;
+        slots[n]=c;
+      }
+    }else if(from!=="pool"){delete slots[from]}
+    render();
+  };
+  el.onpointerup=end;el.onpointercancel=end;
+}
+$("name").oninput=e=>{$("start").disabled=!e.target.value.trim()};
+$("name").onkeydown=e=>{if(e.key==="Enter"&&!$("start").disabled)$("start").click()};
+$("start").onclick=()=>{$("who").textContent="👤 "+$("name").value.trim();init();show("s2")};
+$("check").onclick=()=>{
+  let ok=0;$("tb").innerHTML="";
+  nOrder.forEach(n=>{
+    const g=slots[n],good=DATA[g][2]===DATA[n][2];if(good)ok++;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${fmt(DATA[n][2])}</td><td>${DATA[g][0]} ${DATA[g][1]}</td><td>${DATA[n][0]} ${DATA[n][1]}</td><td class="${good?"ok":"ko"}">${good?"✓":"✗"}</td>`;
+    $("tb").appendChild(tr);
+  });
+  $("score").textContent=`${$("who").textContent.replace("👤 ","")}, votre score : ${ok} / 10`;
+  show("s3");
+};
+$("back").onclick=()=>show("s2");
+$("again").onclick=()=>{init();show("s2")};
+</script>
+</body>
+</html>
